@@ -9,12 +9,12 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-Explain how your project works
+Okay, so basically, this is epic. It works!
 
 ## How to test
 
-Explain how to use your project
+I just want my credit like im Soulja. Camo like rambo big draco cross his shoulder.
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+Using all of the hardware dude. Like all of it. 16 gigs of ram. 128 gigaflops. The blemflark collapsed to nothing. Rick and mroty. 100 years.

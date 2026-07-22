@@ -54,3 +54,10 @@ async def test_counter(dut):
 
     # Wait for one clock cycle to see the output values
     
+    for _ in range(300):
+        await RisingEdge(dut.clk)
+        await ReadOnly()
+
+        assert dut.uo_out.value == expected_value  # Check the count after 67 clock cycles
+        expected_value = (expected_value + 1) % 256  # Wrap around at 256
+        dut._log.info(f"uo_out: {dut.uo_out.value}, uio_out: {dut.uio_out.value}, uio_oe: {dut.uio_oe.value}")

@@ -11,7 +11,7 @@ async def test_counter(dut):
 
     # Set the clock period to 10 ns (100 MHz)
     clock = Clock(dut.clk, 10, unit="ns")
-    cocotb.start_soon(clock.start())
+    clock.start(start_high=False)  # Start the clock with a low phase
 
 
     # Initialize all testbench controlled inputs
@@ -20,7 +20,7 @@ async def test_counter(dut):
     dut.uio_in.value = 0
     dut.rst_n.value = 0
 
-    await RisingEdge(dut.clk)  # Wait for reset to be sampled
+    await ClockCycles(dut.clk, 3)  # Wait for reset to be sampled
 
     await ReadOnly()  # Wait for the read-only phase of the simulation
 
@@ -44,10 +44,15 @@ async def test_counter(dut):
     dut.rst_n.value = 0  # Assert reset again
 
     await RisingEdge(dut.clk)  # Wait for reset to be sampled
+
+    # wait for read-only so non-blocking stuff goes thru
     await ReadOnly()
+
     assert dut.uo_out.value == 0
 
     await FallingEdge(dut.clk)
+    # wait until end of falling edge so read only phase is over
+    
     dut.rst_n.value = 1
 
     dut._log.info("Test project behavior")

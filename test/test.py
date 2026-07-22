@@ -3,38 +3,54 @@
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge, ReadOnly
 
 
 @cocotb.test()
-async def test_project(dut):
-    dut._log.info("Start")
+async def test_counter(dut):
 
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, unit="us")
+    # Set the clock period to 10 ns (100 MHz)
+    clock = Clock(dut.clk, 10, unit="ns")
     cocotb.start_soon(clock.start())
 
-    # Reset
-    dut._log.info("Reset")
+
+    # Initialize all testbench controlled inputs
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
+
+    await RisingEdge(dut.clk)  # Wait for reset to be sampled
+
+    await ReadOnly()  # Wait for the read-only phase of the simulation
+
+    assert dut.uo_out.value == 0  # Check that the output (aka counter) is 0 after reset
+
+    assert dut.uio_out.value == 0  # unused output! should still be 0
+
+    assert dut.uio_oe.value == 0  # set these to 0, should still be
+
+    # ReadOnly() lasts until simulation time advances.  Move to the falling
+    # edge before driving reset so this write happens in a writable phase.
+    await FallingEdge(dut.clk)
+    dut.rst_n.value = 1  # Release reset
+
+    await ClockCycles(dut.clk, 67)  # Wait for 67 clock cycles
+
+    await ReadOnly()  # Let the final nonblocking counter update settle
+    assert dut.uo_out.value == 67  # Check the count after 67 clock cycles
+
+    await FallingEdge(dut.clk)
+    dut.rst_n.value = 0  # Assert reset again
+
+    await RisingEdge(dut.clk)  # Wait for reset to be sampled
+    await ReadOnly()
+    assert dut.uo_out.value == 0
+
+    await FallingEdge(dut.clk)
     dut.rst_n.value = 1
 
     dut._log.info("Test project behavior")
 
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
-
     # Wait for one clock cycle to see the output values
-    await ClockCycles(dut.clk, 1)
-
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
-
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+    

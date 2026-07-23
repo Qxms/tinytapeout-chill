@@ -13,7 +13,6 @@ async def test_counter(dut):
     clock = Clock(dut.clk, 10, unit="ns")
     clock.start(start_high=False)  # Start the clock with a low phase
 
-
     # Initialize all testbench controlled inputs
     dut.ena.value = 1
     dut.ui_in.value = 0
@@ -59,6 +58,8 @@ async def test_counter(dut):
 
     # Wait for one clock cycle to see the output values
     
+    expected_value = 1
+
     for _ in range(300):
         await RisingEdge(dut.clk)
         await ReadOnly()

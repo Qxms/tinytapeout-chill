@@ -1,14 +1,14 @@
 # Tiny Tapeout project information
 project:
-  title:        "TT"      # Project title
+  title:        "RV32E PROTOTYPE"      # Project title
   author:       "Joshua Brazao"      # Your name
   discord:      "sinusoids"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "Amazing things."      # One line description of what your project does
-  language:     "Verilog, Systemverilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
-  clock_hz:     0       # Clock frequency in Hz (or 0 if not applicable)
+  description:  "Near-finished prototype of RV32E core for ASIC design flow experimentation."      # One line description of what your project does
+  language:     "Verilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
+  clock_hz:     50000000 # 50 MHz target; src/config.json constrains a 20 ns period
 
   # How many tiles your design occupies? A single tile is about 167x108 uM.
-  tiles: "1x1"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
+  tiles: "3x2"          # Valid values: 1x1, 1x2, 2x2, 3x2, 4x2, 6x2 or 8x2
 
   # Your top module name must start with "tt_um_". Make it unique by including your github username:
   top_module:  "tt_um_tinytapeout_chill"
@@ -18,6 +18,11 @@ project:
   # Don't forget to also update `PROJECT_SOURCES` in test/Makefile.
   source_files:
     - "project.v"
+    - "rv32e_regfile.v"
+    - "rv32e_alu.v"
+    - "rv32e_immgen.v"
+    - "rv32e_decoder.v"
+    - "rv32e_core.v"
 
 # The pinout of your project. Leave unused pins blank. DO NOT delete or add any pins.
 # This section is for the datasheet/website. Use descriptive names (e.g., RX, TX, MOSI, SCL, SEG_A, etc.).

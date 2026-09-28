@@ -118,6 +118,28 @@ assign branch_lt = ($signed(rs1_data) < $signed(rs2_data)); // OBVIOUSLY the sig
 
 reg branch_taken;
 
+wire [31:0] load_shifted;
+reg  [31:0] load_data;
+// so this takes dmem_rdata and shifts it! as necessary. to support half and word ops
+assign load_shifted = dmem_rdata >> {mem_addr_q[1:0], 3'b000};
+
+always @(*) begin
+    load_data = 32'b0;
+
+    case (mem_size_q)
+        2'b00: // byte
+            load_data = load_unsigned_q ? {24'b0, load_shifted[7:0]} : {{24{load_shifted[7]}}, load_shifted[7:0]};
+
+        2'b01: // halfword
+            load_data = load_unsigned_q ? {16'b0, load_shifted[15:0]} : {{16{load_shifted[15]}}, load_shifted[15:0]};
+
+        2'b10: // aligned word
+            load_data = dmem_rdata;
+
+        default: ;
+    endcase
+end
+
 always@(*)
 begin
 
@@ -284,8 +306,8 @@ begin
 
             end
 
-            MEMORY: begin // TODO: implement byte and halfword ops too
-            
+            MEMORY: begin
+            // ou shii, dmem ready and valid! we went over this!
                 if (dmem_ready && dmem_valid) begin // dmem_valid js indicates when state == MEMORY, doubles as output
                     
                     if (mem_write_q) begin // then we're storing!
@@ -295,10 +317,10 @@ begin
 
                     end else begin
                         // gets synchronously loaded into regfile!
-                        wb_data_q <= dmem_rdata; // ahh this is loading
+                        wb_data_q <= load_data; // ahh this is loading
                         state <= WRITEBACK;
 
-                    end // nothing else we needa do to prevent latching?
+                    end // nothing else we needa do to prevent latching? nah cuz its always ff
 
                 end
 

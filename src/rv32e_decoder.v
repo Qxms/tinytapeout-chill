@@ -178,7 +178,7 @@ illegal = 1'b1;
             wb_sel = 2'b01; // memory
             use_pc_as_alu_a = 0; // no using rs1
             use_imm_as_alu_b = 1; // yes using imm
-
+            // mem_size: 00 byte, 01 half, 10 word
             case (funct3) 
                 // load unsigned unnecessary cuz default but whatever
                 3'b000: begin instruction_match = 1; mem_size = 2'b00; load_unsigned = 0; end // lb
@@ -225,13 +225,11 @@ illegal = 1'b1;
         end
 
         7'b1100011: // branches, B imm
-        begin
-            
-            imm_sel = 3'b010; // B
-            use_pc_as_alu_a = 1; // yes using pc
-            use_imm_as_alu_b = 1; // yes using imm
+        begin // uses alu opcode 0000? YES, adds
 
-            case (funct3)
+            alu_op = 4'b0000; // branch target = PC + B immediate
+
+            case (funct3) // problem: 
 
                 3'b000: begin instruction_match = 1; branch_type = 3'b001; end // beq
                 3'b001: begin instruction_match = 1; branch_type = 3'b010; end // bne
@@ -246,6 +244,9 @@ illegal = 1'b1;
 
             if (instruction_match && !instr[24] && !instr[19]) // checks that rs1 and rs2 are valid
             begin  
+                imm_sel = 3'b010; // B
+                use_pc_as_alu_a = 1; // yes using pc
+                use_imm_as_alu_b = 1; // yes using imm
                 illegal = 0;
             end else branch_type = 3'b000;
 

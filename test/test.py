@@ -1,69 +1,42 @@
-# SPDX-FileCopyrightText: © 2024 Tiny Tapeout
 # SPDX-License-Identifier: Apache-2.0
-
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import ClockCycles, RisingEdge, FallingEdge, ReadOnly
+from cocotb.triggers import ClockCycles, FallingEdge, ReadOnly
 
 
 @cocotb.test()
-async def test_counter(dut):
-
-    # Set the clock period to 10 ns (100 MHz)
-    clock = Clock(dut.clk, 10, unit="ns")
-    clock.start(start_high=False)  # Start the clock with a low phase
-
-    # Initialize all testbench controlled inputs
+async def test_cpu_demo(dut):
+    """Pin-only test shared by RTL and gate-level simulation."""
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
     dut.rst_n.value = 0
+    cocotb.start_soon(Clock(dut.clk, 20, unit="ns").start())
 
-    await ClockCycles(dut.clk, 3)  # Wait for reset to be sampled
-
-    await ReadOnly()  # Wait for the read-only phase of the simulation
-
-    assert dut.uo_out.value == 0  # Check that the output (aka counter) is 0 after reset
-
-    assert dut.uio_out.value == 0  # unused output! should still be 0
-
-    assert dut.uio_oe.value == 0  # set these to 0, should still be
-
-    # ReadOnly() lasts until simulation time advances.  Move to the falling
-    # edge before driving reset so this write happens in a writable phase.
-    await FallingEdge(dut.clk)
-    dut.rst_n.value = 1  # Release reset
-
-    await ClockCycles(dut.clk, 67)  # Wait for 67 clock cycles
-
-    await ReadOnly()  # Let the final nonblocking counter update settle
-    assert dut.uo_out.value == 67  # Check the count after 67 clock cycles
-
-    await FallingEdge(dut.clk)
-    dut.rst_n.value = 0  # Assert reset again
-
-    await RisingEdge(dut.clk)  # Wait for reset to be sampled
-
-    # wait for read-only so non-blocking stuff goes thru
-    await ReadOnly()
-
-    assert dut.uo_out.value == 0
-
-    await FallingEdge(dut.clk)
-    # wait until end of falling edge so read only phase is over
-    
-    dut.rst_n.value = 1
-
-    dut._log.info("Test project behavior")
-
-    # Wait for one clock cycle to see the output values
-    
-    expected_value = 1
-
-    for _ in range(300):
-        await RisingEdge(dut.clk)
+    async def reset():
+        await FallingEdge(dut.clk)
+        dut.rst_n.value = 0
+        await ClockCycles(dut.clk, 3)
         await ReadOnly()
+        assert int(dut.uo_out.value) == 0
+        await FallingEdge(dut.clk)
+        dut.rst_n.value = 1
 
-        assert dut.uo_out.value == expected_value  # Check the count after 67 clock cycles
-        expected_value = (expected_value + 1) % 256  # Wrap around at 256
-        dut._log.info(f"uo_out: {dut.uo_out.value}, uio_out: {dut.uio_out.value}, uio_oe: {dut.uio_oe.value}")
+    async def check_input(value):
+        await FallingEdge(dut.clk)
+        dut.ui_in.value = value
+        # Allow an in-flight old sample plus a new 13-cycle program loop.
+        await ClockCycles(dut.clk, 32)
+        await ReadOnly()
+        assert int(dut.uo_out.value) == ((value + 5) & 255), (
+            f"input={value}, output={dut.uo_out.value}"
+        )
+        assert int(dut.uio_oe.value) == 0
+        assert int(dut.uio_out.value) == 0
+
+    await reset()
+    for value in range(256):
+        await check_input(value)
+    await reset()
+    for value in (7, 20, 255, 0):
+        await check_input(value)
